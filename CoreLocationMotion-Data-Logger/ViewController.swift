@@ -148,34 +148,6 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     }
     
     
-    private func startPedometerUpdate() {
-        
-        // check the step counter and distance are available
-        if (CMPedometer.isStepCountingAvailable() && CMPedometer.isDistanceAvailable()) {
-            pedoMeter.startUpdates(from: Date()) { (motion: CMPedometerData?, error: Error?) in
-                
-                // optional binding for safety
-                if let pedometerData = motion {
-                    
-                    // dispatch queue to display UI
-                    DispatchQueue.main.async {
-                        self.stepCounterLabel.text = String(format:"%04d", pedometerData.numberOfSteps.intValue)
-                        if let distance = pedometerData.distance {
-                            self.distanceLabel.text = String(format:"%.1f", distance.doubleValue)
-                        } else {
-                            self.distanceLabel.text = "nil"
-                        }
-                    }
-                    
-                    // custom queue to save GPS location data
-                    print("Step: \(pedometerData.numberOfSteps)")
-                    print("Distance: \(pedometerData.distance)")
-                }
-            }
-        }
-    }
-    
-    
     private func startIMUUpdate() {
         
         // define IMU update interval up to 200 Hz
@@ -296,6 +268,34 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                             }
                         }
                     }*/
+                }
+            }
+        }
+    }
+    
+    
+    private func startPedometerUpdate() {
+        
+        // check the step counter and distance are available
+        if (CMPedometer.isStepCountingAvailable() && CMPedometer.isDistanceAvailable()) {
+            pedoMeter.startUpdates(from: Date()) { (motion: CMPedometerData?, error: Error?) in
+                
+                // optional binding for safety
+                if let pedometerData = motion {
+                    
+                    // dispatch queue to display UI
+                    DispatchQueue.main.async {
+                        self.stepCounterLabel.text = String(format:"%04d", pedometerData.numberOfSteps.intValue)
+                        if let distance = pedometerData.distance {
+                            self.distanceLabel.text = String(format:"%.1f", distance.doubleValue)
+                        } else {
+                            self.distanceLabel.text = "nil"
+                        }
+                    }
+                    
+                    // custom queue to save GPS location data
+                    print("Step: \(pedometerData.numberOfSteps)")
+                    print("Distance: \(pedometerData.distance)")
                 }
             }
         }
