@@ -47,9 +47,9 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     let numSensor = 6
     let GPS_LOCATION = 0
     let DEVICE_ORIENTATION = 1
-    let IMU_ACCELEROMETER = 2
-    let IMU_GYROSCOPE = 3
-    let IMU_MAGNETOMETER = 4
+    let IMU_MAGNETOMETER = 2
+    let IMU_ACCELEROMETER = 3
+    let IMU_GYROSCOPE = 4
     let PEDOMETER = 5
     
     let sampleFrequency: TimeInterval = 200
@@ -77,7 +77,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     // text file input & output
     var fileHandlers = [FileHandle]()
     var fileURLs = [URL]()
-    var fileNames: [String] = ["location", "orientation.txt", "acceleration.txt"]
+    var fileNames: [String] = ["GPS_location.txt", "device_orientation.txt", "calibrated_magnetic_field.txt", "raw_acceleration.txt", "raw_rotation_rate.txt", "pedometer.txt"]
     
     
     override func viewDidLoad() {
@@ -107,54 +107,152 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         customQueue.sync {
             stopIMUUpdate()
         }
+        pedoMeter.stopUpdates()
     }
     
     
+    // when the Start/Stop button is pressed
     @IBAction func startStopButtonPressed(_ sender: UIButton) {
-        
-    }
-    
-    
-    // didUpdateLocations method
-    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
-        
-        // optional binding for safety
-        if let latestLocation = manager.location {
+        if (self.isRecording == false) {
             
-            // dispatch queue to display UI
-            DispatchQueue.main.async {
-                self.latitudeLabel.text = String(format:"%.3f", latestLocation.coordinate.latitude)
-                self.longitudeLabel.text = String(format:"%.3f", latestLocation.coordinate.longitude)
-                self.horizontalAccuracyLabel.text = String(format:"%.3f", latestLocation.horizontalAccuracy)
-                self.altitudeLabel.text = String(format:"%.2f", latestLocation.altitude)
-                self.verticalAccuracyLabel.text = String(format:"%.3f", latestLocation.verticalAccuracy)
-                if let buildingFloor = latestLocation.floor {
-                    self.buildingFloorLabel.text = String(format:"%02d", buildingFloor.level)
+            // start GPS/IMU data recording
+            customQueue.async {
+                if (self.createFiles()) {
+                    DispatchQueue.main.async {
+                        // reset timer
+                        self.secondCounter = 0
+                        self.recordingTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true, block: { (Timer) -> Void in
+                            self.secondCounter += 1
+                        })
+                        
+                        // update UI
+                        self.startStopButton.setTitle("Stop", for: .normal)
+                        
+                        // make sure the screen won't lock
+                        UIApplication.shared.isIdleTimerDisabled = true
+                    }
+                    self.isRecording = true
                 } else {
-                    self.buildingFloorLabel.text = "nil"
+                    self.errorMsg(msg: "Failed to create the file")
+                    return
+                }
+            }
+        } else {
+            
+            // stop recording and share the recorded text file
+            if (recordingTimer.isValid) {
+                recordingTimer.invalidate()
+            }
+            
+            customQueue.async {
+                self.isRecording = false
+                if (self.fileHandlers.count == self.numSensor) {
+                    for handler in self.fileHandlers {
+                        handler.closeFile()
+                    }
+                    DispatchQueue.main.async {
+                        let activityVC = UIActivityViewController(activityItems: self.fileURLs, applicationActivities: nil)
+                        self.present(activityVC, animated: true, completion: nil)
+                    }
                 }
             }
             
-            // custom queue to save GPS location data
-            print("latestLocation.timestamp = \(latestLocation.timestamp.timeIntervalSince1970 * self.mulSecondToNanoSecond)")
-            print("longitude = \(latestLocation.coordinate.longitude), latitude = \(latestLocation.coordinate.latitude)")
+            // initialize UI on the screen
+            self.latitudeLabel.text = String(format:"%.3f", self.defaultValue)
+            self.longitudeLabel.text = String(format:"%.3f", self.defaultValue)
+            self.horizontalAccuracyLabel.text = String(format:"%.3f", self.defaultValue)
+            self.altitudeLabel.text = String(format:"%.2f", self.defaultValue)
+            self.buildingFloorLabel.text = String(format:"%02df", self.defaultValue)
+            self.verticalAccuracyLabel.text = String(format:"%.3f", self.defaultValue)
+            
+            self.rxLabel.text = String(format:"%.3f", self.defaultValue)
+            self.ryLabel.text = String(format:"%.3f", self.defaultValue)
+            self.rzLabel.text = String(format:"%.3f", self.defaultValue)
+            self.mxLabel.text = String(format:"%.3f", self.defaultValue)
+            self.myLabel.text = String(format:"%.3f", self.defaultValue)
+            self.mzLabel.text = String(format:"%.3f", self.defaultValue)
+            
+            self.axLabel.text = String(format:"%.3f", self.defaultValue)
+            self.ayLabel.text = String(format:"%.3f", self.defaultValue)
+            self.azLabel.text = String(format:"%.3f", self.defaultValue)
+
+            self.wxLabel.text = String(format:"%.3f", self.defaultValue)
+            self.wyLabel.text = String(format:"%.3f", self.defaultValue)
+            self.wzLabel.text = String(format:"%.3f", self.defaultValue)
+            
+            self.stepCounterLabel.text = String(format:"%04d", self.defaultValue)
+            self.distanceLabel.text = String(format:"%.1f", self.defaultValue)
+            
+            self.startStopButton.setTitle("Start", for: .normal)
+            self.statusLabel.text = "Ready"
+            
+            // resume screen lock
+            UIApplication.shared.isIdleTimerDisabled = false
         }
     }
     
     
-    // didFailWithError method
+    // define startUpdatingLocation() function
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        
+        // optional binding for safety
+        if let latestLocation = manager.location {
+            let timestamp = latestLocation.timestamp.timeIntervalSince1970 * self.mulSecondToNanoSecond
+            let latitude = latestLocation.coordinate.latitude
+            let longitude = latestLocation.coordinate.longitude
+            let horizontalAccuracy = latestLocation.horizontalAccuracy
+            let altitude = latestLocation.altitude
+            let verticalAccuracy = latestLocation.verticalAccuracy
+            var buildingFloor = -9
+            if let temp = latestLocation.floor {
+                buildingFloor = temp.level
+            }
+            
+            // dispatch queue to display UI
+            DispatchQueue.main.async {
+                self.latitudeLabel.text = String(format:"%.3f", latitude)
+                self.longitudeLabel.text = String(format:"%.3f", longitude)
+                self.horizontalAccuracyLabel.text = String(format:"%.3f", horizontalAccuracy)
+                self.altitudeLabel.text = String(format:"%.2f", altitude)
+                self.verticalAccuracyLabel.text = String(format:"%.3f", verticalAccuracy)
+                self.buildingFloorLabel.text = String(format:"%02d", buildingFloor)
+            }
+            
+            // custom queue to save GPS location data
+            self.customQueue.async {
+                if (self.fileHandlers.count == self.numSensor && self.isRecording) {
+                    let locationData = String(format: "%.0f %.6f %.6f %.6f %.6f %.6f %.6f \n",
+                                              timestamp,
+                                              latitude,
+                                              longitude,
+                                              horizontalAccuracy,
+                                              altitude,
+                                              buildingFloor,
+                                              verticalAccuracy)
+                    if let locationDataToWrite = locationData.data(using: .utf8) {
+                        self.fileHandlers[self.GPS_LOCATION].write(locationDataToWrite)
+                    } else {
+                        os_log("Failed to write data record", log: OSLog.default, type: .fault)
+                    }
+                }
+            }
+        }
+    }
+    
+    
+    // define didFailWithError function
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         print("GPS Error => \(error.localizedDescription)")
     }
     
     
+    // define startIMUUpdate() function
     private func startIMUUpdate() {
         
         // define IMU update interval up to 200 Hz
         motionManager.deviceMotionUpdateInterval = 1.0 / sampleFrequency
         motionManager.accelerometerUpdateInterval = 1.0 / sampleFrequency
         motionManager.gyroUpdateInterval = 1.0 / sampleFrequency
-        motionManager.magnetometerUpdateInterval = 1.0 / sampleFrequency
         
         
         // 1) update device motion
@@ -163,37 +261,60 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                 
                 // optional binding for safety
                 if let deviceMotion = motion {
+                    let timestamp = Date().timeIntervalSince1970 * self.mulSecondToNanoSecond
+                    let deviceOrientationRx = deviceMotion.attitude.roll
+                    let deviceOrientationRy = deviceMotion.attitude.yaw
+                    let deviceOrientationRz = deviceMotion.attitude.pitch
+                    
+                    let deviceOrientationQx = deviceMotion.attitude.quaternion.x
+                    let deviceOrientationQy = deviceMotion.attitude.quaternion.y
+                    let deviceOrientationQz = deviceMotion.attitude.quaternion.z
+                    let deviceOrientationQw = deviceMotion.attitude.quaternion.w
+                    
+                    let magneticFieldX = deviceMotion.magneticField.field.x
+                    let magneticFieldY = deviceMotion.magneticField.field.y
+                    let magneticFieldZ = deviceMotion.magneticField.field.z
                     
                     // dispatch queue to display UI
                     DispatchQueue.main.async {
-                        self.rxLabel.text = String(format:"%.3f", deviceMotion.attitude.roll)
-                        self.ryLabel.text = String(format:"%.3f", deviceMotion.attitude.yaw)
-                        self.rzLabel.text = String(format:"%.3f", deviceMotion.attitude.pitch)
+                        self.rxLabel.text = String(format:"%.3f", deviceOrientationRx)
+                        self.ryLabel.text = String(format:"%.3f", deviceOrientationRy)
+                        self.rzLabel.text = String(format:"%.3f", deviceOrientationRz)
                         
-                        self.mxLabel.text = String(format:"%.3f", deviceMotion.magneticField.field.x)
-                        self.myLabel.text = String(format:"%.3f", deviceMotion.magneticField.field.y)
-                        self.mzLabel.text = String(format:"%.3f", deviceMotion.magneticField.field.z)
+                        self.mxLabel.text = String(format:"%.3f", magneticFieldX)
+                        self.myLabel.text = String(format:"%.3f", magneticFieldY)
+                        self.mzLabel.text = String(format:"%.3f", magneticFieldZ)
                     }
                     
-                    
                     // custom queue to save IMU text data
-                    /*self.customQueue.async {
+                    self.customQueue.async {
                         if (self.fileHandlers.count == self.numSensor && self.isRecording) {
                             
                             // Note that the device orientation is expressed in the quaternion form
                             let attitudeData = String(format: "%.0f %.6f %.6f %.6f %.6f \n",
-                                                      Date().timeIntervalSince1970 * self.mulSecondToNanoSecond, // timestamp
-                                                      deviceMotion.attitude.quaternion.x,                        // orientation in x
-                                                      deviceMotion.attitude.quaternion.y,                        // orientation in y
-                                                      deviceMotion.attitude.quaternion.z,                        // orientation in z
-                                                      deviceMotion.attitude.quaternion.w)                        // orientation in w
+                                                      timestamp,
+                                                      deviceOrientationQx,
+                                                      deviceOrientationQy,
+                                                      deviceOrientationQz,
+                                                      deviceOrientationQw)
                             if let attitudeDataToWrite = attitudeData.data(using: .utf8) {
                                 self.fileHandlers[self.DEVICE_ORIENTATION].write(attitudeDataToWrite)
                             } else {
                                 os_log("Failed to write data record", log: OSLog.default, type: .fault)
                             }
+                            
+                            let magneticData = String(format: "%.0f %.6f %.6f %.6f \n",
+                                                      timestamp,
+                                                      magneticFieldX,
+                                                      magneticFieldY,
+                                                      magneticFieldZ)
+                            if let magneticDataToWrite = magneticData.data(using: .utf8) {
+                                self.fileHandlers[self.IMU_MAGNETOMETER].write(magneticDataToWrite)
+                            } else {
+                                os_log("Failed to write data record", log: OSLog.default, type: .fault)
+                            }
                         }
-                    }*/
+                    }
                 }
             }
         }
@@ -205,6 +326,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                 
                 // optional binding for safety
                 if let accelerometerData = motion {
+                    let timestamp = Date().timeIntervalSince1970 * self.mulSecondToNanoSecond
                     let rawAccelDataX = accelerometerData.acceleration.x * self.gravity
                     let rawAccelDataY = accelerometerData.acceleration.y * self.gravity
                     let rawAccelDataZ = accelerometerData.acceleration.z * self.gravity
@@ -217,20 +339,20 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                     }
                     
                     // custom queue to save IMU text data
-                    /*self.customQueue.async {
+                    self.customQueue.async {
                         if (self.fileHandlers.count == self.numSensor && self.isRecording) {
                             let rawAccelData = String(format: "%.0f %.6f %.6f %.6f \n",
-                                                      Date().timeIntervalSince1970 * self.mulSecondToNanoSecond, // timestamp
-                                                      rawAccelDataX,                                             // raw acceleration in x
-                                                      rawAccelDataY,                                             // raw acceleration in y
-                                                      rawAccelDataZ)                                             // raw acceleration in z
+                                                      timestamp,
+                                                      rawAccelDataX,
+                                                      rawAccelDataY,
+                                                      rawAccelDataZ)
                             if let rawAccelDataToWrite = rawAccelData.data(using: .utf8) {
                                 self.fileHandlers[self.IMU_ACCELEROMETER].write(rawAccelDataToWrite)
                             } else {
                                 os_log("Failed to write data record", log: OSLog.default, type: .fault)
                             }
                         }
-                    }*/
+                    }
                 }
             }
         }
@@ -242,6 +364,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                 
                 // optional binding for safety
                 if let gyroData = motion {
+                    let timestamp = Date().timeIntervalSince1970 * self.mulSecondToNanoSecond
                     let rawGyroDataX = gyroData.rotationRate.x
                     let rawGyroDataY = gyroData.rotationRate.y
                     let rawGyroDataZ = gyroData.rotationRate.z
@@ -254,26 +377,27 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                     }
                     
                     // custom queue to save IMU text data
-                    /*self.customQueue.async {
+                    self.customQueue.async {
                         if (self.fileHandlers.count == self.numSensor && self.isRecording) {
                             let rawGyroData = String(format: "%.0f %.6f %.6f %.6f \n",
-                                                     Date().timeIntervalSince1970 * self.mulSecondToNanoSecond, // timestamp
-                                                     rawGyroDataX,                                              // raw rotation rate in x
-                                                     rawGyroDataY,                                              // raw rotation rate in y
-                                                     rawGyroDataZ)                                              // raw rotation rate in z
+                                                     timestamp,
+                                                     rawGyroDataX,
+                                                     rawGyroDataY,
+                                                     rawGyroDataZ)
                             if let rawGyroDataToWrite = rawGyroData.data(using: .utf8) {
                                 self.fileHandlers[self.IMU_GYROSCOPE].write(rawGyroDataToWrite)
                             } else {
                                 os_log("Failed to write data record", log: OSLog.default, type: .fault)
                             }
                         }
-                    }*/
+                    }
                 }
             }
         }
     }
     
     
+    // define startPedometerUpdate() function
     private func startPedometerUpdate() {
         
         // check the step counter and distance are available
@@ -282,20 +406,33 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                 
                 // optional binding for safety
                 if let pedometerData = motion {
+                    let timestamp = Date().timeIntervalSince1970 * self.mulSecondToNanoSecond
+                    let stepCounter = pedometerData.numberOfSteps.intValue
+                    var distance: Double = -100
+                    if let temp = pedometerData.distance {
+                        distance = temp.doubleValue
+                    }
                     
                     // dispatch queue to display UI
                     DispatchQueue.main.async {
-                        self.stepCounterLabel.text = String(format:"%04d", pedometerData.numberOfSteps.intValue)
-                        if let distance = pedometerData.distance {
-                            self.distanceLabel.text = String(format:"%.1f", distance.doubleValue)
-                        } else {
-                            self.distanceLabel.text = "nil"
-                        }
+                        self.stepCounterLabel.text = String(format:"%04d", stepCounter)
+                        self.distanceLabel.text = String(format:"%.1f", distance)
                     }
                     
-                    // custom queue to save GPS location data
-                    print("Step: \(pedometerData.numberOfSteps)")
-                    print("Distance: \(pedometerData.distance)")
+                    // custom queue to save pedometer data
+                    self.customQueue.async {
+                        if (self.fileHandlers.count == self.numSensor && self.isRecording) {
+                            let pedoData = String(format: "%.0f %.6f %.6f \n",
+                                                     timestamp,
+                                                     stepCounter,
+                                                     distance)
+                            if let pedoDataToWrite = pedoData.data(using: .utf8) {
+                                self.fileHandlers[self.PEDOMETER].write(pedoDataToWrite)
+                            } else {
+                                os_log("Failed to write data record", log: OSLog.default, type: .fault)
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -318,6 +455,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     }
     
     
+    // some useful functions
     private func errorMsg(msg: String) {
         DispatchQueue.main.async {
             let fileAlert = UIAlertController(title: "IMURecorder", message: msg, preferredStyle: .alert)
@@ -325,5 +463,43 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
             self.present(fileAlert, animated: true, completion: nil)
         }
     }
+    
+    
+    private func createFiles() -> Bool {
+        
+        // initialize file handlers
+        self.fileHandlers.removeAll()
+        self.fileURLs.removeAll()
+        
+        // create each GPS/IMU sensor text file
+        let header = "Created at \(timeToString())"
+        for i in 0...(self.numSensor - 1) {
+            var url = URL(fileURLWithPath: NSTemporaryDirectory())
+            url.appendPathComponent(fileNames[i])
+            self.fileURLs.append(url)
+            
+            // delete previous file
+            if (FileManager.default.fileExists(atPath: url.path)) {
+                do {
+                    try FileManager.default.removeItem(at: url)
+                } catch {
+                    os_log("cannot remove previous file", log:.default, type:.error)
+                    return false
+                }
+            }
+            
+            if (!FileManager.default.createFile(atPath: url.path, contents: header.data(using: String.Encoding.utf8), attributes: nil)) {
+                self.errorMsg(msg: "cannot create file \(self.fileNames[i])")
+                return false
+            }
+            
+            let fileHandle: FileHandle? = FileHandle(forWritingAtPath: url.path)
+            if let handle = fileHandle {
+                self.fileHandlers.append(handle)
+            } else {
+                return false
+            }
+        }
+        return true
+    }
 }
-
