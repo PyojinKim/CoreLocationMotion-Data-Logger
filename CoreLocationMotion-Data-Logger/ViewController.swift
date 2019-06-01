@@ -257,7 +257,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         
         // 1) update device motion
         if (!motionManager.isDeviceMotionActive) {
-            motionManager.startDeviceMotionUpdates(to: OperationQueue.main) { (motion: CMDeviceMotion?, error: Error?) in
+            motionManager.startDeviceMotionUpdates(using: .xMagneticNorthZVertical, to: OperationQueue.main) { (motion: CMDeviceMotion?, error: Error?) in
                 
                 // optional binding for safety
                 if let deviceMotion = motion {
