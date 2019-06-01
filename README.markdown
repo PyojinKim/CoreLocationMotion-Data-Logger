@@ -1,11 +1,13 @@
-# Core Motion Data Logger #
+# Core Location Motion Data Logger #
 
 This is a simple application to allow the easy capture of GPS/IMU data on iOS devices for offline use.
 I wanted to play around with data from GPS and IMU with Core Location and Core Motion framework in Swift 5.0 for iPhone Xs.
 
-![Core Location Motion Data Logger](https://github.com/PyojinKim/CoreLocationMotion-Data-Logger/blob/master/screenshot.jpeg)
+![Core Location Motion Data Logger](https://github.com/PyojinKim/CoreLocationMotion-Data-Logger/blob/master/screenshot.png)
 
-The aspects of the IMU that you can log follow directly from the CoreMotion documentation provided by apple.
+![Body Frame Definition](https://github.com/PyojinKim/CoreLocationMotion-Data-Logger/blob/master/body_frame_definition.png)
+
+The aspects of the IMU that you can log follow directly from the CoreMotion documentation provided by Apple.
 For more details regarding what each switch toggles, see the CoreMotion documentation [here](http://developer.apple.com/library/ios/#documentation/CoreMotion/Reference/CoreMotion_Reference/_index.html).
 
 ## Usage Notes ##
