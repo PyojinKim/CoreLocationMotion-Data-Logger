@@ -1,39 +1,37 @@
 # Core Location Motion Data Logger #
 
 This is a simple application to allow the easy capture of GPS/IMU data on iOS devices for offline use.
-I wanted to play around with data from GPS and IMU with Core Location and Core Motion framework in Swift 5.0 for iPhone Xs.
+I wanted to play around with data from GPS and IMU with Core Location and Core Motion frameworks in Swift 5.0 for iPhone Xs.
 
 ![Core Location Motion Data Logger](https://github.com/PyojinKim/CoreLocationMotion-Data-Logger/blob/master/screenshot.png)
 
-![Body Frame Definition](https://github.com/PyojinKim/CoreLocationMotion-Data-Logger/blob/master/body_frame_definition.png)
+The aspects of the IMU that you can log follow directly from the Core Motion documentation provided by Apple.
+For more details, see the Core Motion documentation [here](https://developer.apple.com/documentation/coremotion).
 
-The aspects of the IMU that you can log follow directly from the CoreMotion documentation provided by Apple.
-For more details regarding what each switch toggles, see the CoreMotion documentation [here](http://developer.apple.com/library/ios/#documentation/CoreMotion/Reference/CoreMotion_Reference/_index.html).
 
 ## Usage Notes ##
 
-The txt files this app produces can be accessed from iTunes via the standard app file sharing interface. They can also be recovered using the Xcode Organizer.
+The txt files are produced automatically after pressing Stop button.
+This Xcode project is written under Xcode Version 10.2.1 (10E1001) for iOS 12.2.
+It doesn't currently check for sensor availability before logging.
 
-This only works on iOS 5 because of Automatic Reference Counting and Storyboards. It doesn't currently check for sensor availability before logging...I'm not sure if there are any devices that run iOS 5 that don't have all these sensors. Either way, it's a TODO.
-
-With the default update rates (100 Hz), it can take a few seconds to save all of the data to disk. On an iPhone 4S, a thirty second run while logging the user acceleration and rotation rate took about 5 seconds to save. A more efficient save method will probably have to be created if anyone wants to log data at these rates for very long periods of time.
 
 ## Output Format ##
 
-I've chosen the following output formats, but they are easy to change if you find something else more convenient.
+I have chosen the following output formats, but they are easy to modify if you find something else more convenient.
 
-* CMDeviceMotion Attitude: `timestamp,roll,pitch,yaw\n`
-* CMDeviceMotion Gravity: `timestamp,x,y,z\n`
-* CMDeviceMotion Magnetic Field: `timestamp,x,y,z,(int)accuracy\n`
-* CMDeviceMotion Rotation Rate: `timestamp,x,y,z\n`
-* CMDeviceMotion User Acceleration: `timestamp,x,y,z\n`
-* CMAccelerometerData Raw Acceleration: `timestamp,x,y,z\n`
-* CMGyroData Raw Gyroscope: `timestamp,x,y,z\n`
+* CLLocation (GPS-location.txt): `timestamp, latitude, longitude, horizontalAccuracy, altitude, buildingFloor, verticalAccuracy \n`
+* CMDeviceMotion (device-orientation.txt): `timestamp, quaternion_x, quaternion_y, quaternion_z, quaternion_w \n`
+* CMDeviceMotion (calibrated-magnetic-field.txt): `timestamp, magnetic_x, magnetic_y, magnetic_z \n`
+* CMAccelerometerData (raw-acceleration.txt): `timestamp, acceleration_x, acceleration_y, acceleration_z \n`
+* CMGyroData (raw-rotation-rate.txt): `timestamp, gyro_x, gyro_y, gyro_z \n`
+* CMPedometerData (pedometer.txt): `timestamp, step count, distance \n`
 
-There are alternative representations of the attitude (quaternions, rotation matrix). You will have to modify the source if you prefer logging one of those instead of roll/pitch/yaw.
+There are alternative representations of the attitude (roll/pitch/yaw, quaternions, rotation matrix).
+You will have to modify the source code if you prefer logging one of those instead of quaternion format.
 
 
-## Offline Python Visualization ##
+## Offline Matlab Visualization ##
 
 The ability to experiment with different algorithms to process the IMU data is the reason that I created this project in the first place. I've been working with SciPy/NumPy quite a bit these days as a beautiful, truly object oriented, free, and open source alternative to MATLAB. I've included an example script that you can use to parse and visualize the data that comes from CoreMotion Data Logger. Look under the Visualization directory to check it out. 
 
