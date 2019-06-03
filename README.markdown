@@ -33,12 +33,13 @@ You will have to modify the source code if you prefer logging one of those inste
 
 ## Offline Matlab Visualization ##
 
-The ability to experiment with different algorithms to process the IMU data is the reason that I created this project in the first place. I've been working with SciPy/NumPy quite a bit these days as a beautiful, truly object oriented, free, and open source alternative to MATLAB. I've included an example script that you can use to parse and visualize the data that comes from CoreMotion Data Logger. Look under the Visualization directory to check it out. 
+The ability to experiment with different algorithms to process the IMU data is the reason that I created this project in the first place.
+I have included an example script that you can use to parse and visualize the data that comes from Core Location & Core Motion Data Logger.
+Look under the Visualization directory to check it out.
+You can run the script by typing the following in your terminal:
 
-If you have the necessary packages installed (I don't remember what comes with Python these days), you can run the script by typing the following in your terminal:
+    run main_script.m
 
-    python exampleVisualizer.py
+Here's one of the figures produced by the Matlab script:
 
-Here's one of the figures produced by the script:
-
-![Data visualization](https://github.com/pokeefe/CoreMotion-Data-Logger/raw/master/Visualization/rotationRate.png)
+![Data visualization](https://github.com/PyojinKim/CoreLocationMotion-Data-Logger/blob/master/data_visualization.png)

@@ -5,6 +5,7 @@
 ## Build generated
 build/
 DerivedData/
+Visualization/api_key.mat
 
 ## Various settings
 *.pbxuser
