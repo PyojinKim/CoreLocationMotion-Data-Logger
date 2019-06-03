@@ -262,9 +262,9 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                 // optional binding for safety
                 if let deviceMotion = motion {
                     let timestamp = Date().timeIntervalSince1970 * self.mulSecondToNanoSecond
-                    let deviceOrientationRx = deviceMotion.attitude.roll
-                    let deviceOrientationRy = deviceMotion.attitude.yaw
-                    let deviceOrientationRz = deviceMotion.attitude.pitch
+                    let deviceOrientationRx = deviceMotion.attitude.pitch
+                    let deviceOrientationRy = deviceMotion.attitude.roll
+                    let deviceOrientationRz = deviceMotion.attitude.yaw
                     
                     let deviceOrientationQx = deviceMotion.attitude.quaternion.x
                     let deviceOrientationQy = deviceMotion.attitude.quaternion.y
