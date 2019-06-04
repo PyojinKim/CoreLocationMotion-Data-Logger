@@ -422,7 +422,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                     // custom queue to save pedometer data
                     self.customQueue.async {
                         if (self.fileHandlers.count == self.numSensor && self.isRecording) {
-                            let pedoData = String(format: "%.0f %.6f %.6f \n",
+                            let pedoData = String(format: "%.0f %04d %.3f \n",
                                                      timestamp,
                                                      stepCounter,
                                                      distance)
