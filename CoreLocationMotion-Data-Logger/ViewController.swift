@@ -527,7 +527,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         self.fileURLs.removeAll()
         
         // create each GPS/IMU sensor text file
-        let header = "Created at \(timeToString()) \n"
+        let header = ""
         for i in 0...(self.numSensor - 1) {
             var url = URL(fileURLWithPath: NSTemporaryDirectory())
             url.appendPathComponent(fileNames[i])
@@ -555,6 +555,19 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                 return false
             }
         }
+        
+        // write current recording time
+        let timeHeader = "# Created at \(timeToString()) in Seoul, South Korea \n"
+        for i in 0...(self.numSensor - 1) {
+            if let timeHeaderToWrite = timeHeader.data(using: .utf8) {
+                self.fileHandlers[i].write(timeHeaderToWrite)
+            } else {
+                os_log("Failed to write data record", log: OSLog.default, type: .fault)
+                return false
+            }
+        }
+        
+        // return true if everything is alright
         return true
     }
 }
