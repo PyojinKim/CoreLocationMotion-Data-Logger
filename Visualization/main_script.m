@@ -8,7 +8,7 @@ dbstop if error;
 %% 1) GPS location
 
 % parsing GPS location text
-textFileDir = 'GPS-location.txt';
+textFileDir = 'gps.txt';
 delimiter = ' ';
 headerlinesIn = 0;
 textGPSLocationData = importdata(textFileDir, delimiter, headerlinesIn);
@@ -26,7 +26,7 @@ xlabel('Longitude'); ylabel('Latitude'); hold off;
 %% 2) device orientation
 
 % parsing device orientation text
-textFileDir = 'device-orientation.txt';
+textFileDir = 'game_rv.txt';
 delimiter = ' ';
 headerlinesIn = 0;
 textOrientationData = importdata(textFileDir, delimiter, headerlinesIn);
@@ -89,7 +89,7 @@ set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
 %% 3) calibrated magnetic field
 
 % parsing calibrated magnetic field text
-textFileDir = 'calibrated-magnetic-field.txt';
+textFileDir = 'magnet.txt';
 delimiter = ' ';
 headerlinesIn = 0;
 textMagnetData = importdata(textFileDir, delimiter, headerlinesIn);
@@ -126,7 +126,7 @@ set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
 %% 4) raw acceleration
 
 % parsing raw acceleration text
-textFileDir = 'raw-acceleration.txt';
+textFileDir = 'acce.txt';
 delimiter = ' ';
 headerlinesIn = 0;
 textRawAccelerationData = importdata(textFileDir, delimiter, headerlinesIn);
@@ -163,7 +163,7 @@ set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
 %% 5) raw rotation rate
 
 % parsing raw rotation rate text
-textFileDir = 'raw-rotation-rate.txt';
+textFileDir = 'gyro_uncalib.txt';
 delimiter = ' ';
 headerlinesIn = 0;
 textRawGyroData = importdata(textFileDir, delimiter, headerlinesIn);
