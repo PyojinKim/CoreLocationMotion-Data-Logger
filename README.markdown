@@ -20,12 +20,15 @@ It doesn't currently check for sensor availability before logging.
 
 I have chosen the following output formats, but they are easy to modify if you find something else more convenient.
 
-* CLLocation (GPS-location.txt): `timestamp, latitude, longitude, horizontalAccuracy, altitude, buildingFloor, verticalAccuracy \n`
-* CMDeviceMotion (device-orientation.txt): `timestamp, quaternion_x, quaternion_y, quaternion_z, quaternion_w \n`
-* CMDeviceMotion (calibrated-magnetic-field.txt): `timestamp, magnetic_x, magnetic_y, magnetic_z \n`
-* CMAccelerometerData (raw-acceleration.txt): `timestamp, acceleration_x, acceleration_y, acceleration_z \n`
-* CMGyroData (raw-rotation-rate.txt): `timestamp, gyro_x, gyro_y, gyro_z \n`
-* CMPedometerData (pedometer.txt): `timestamp, step count, distance \n`
+* CLLocation (gps.txt): `timestamp, latitude, longitude, horizontalAccuracy, altitude, buildingFloor, verticalAccuracy \n`
+* CMDeviceMotion (game_rv.txt): `timestamp, quaternion_x, quaternion_y, quaternion_z, quaternion_w \n`
+* CMDeviceMotion (gyro.txt): `timestamp, gyro_x, gyro_y, gyro_z \n`
+* CMDeviceMotion (gravity.txt): `timestamp, gravity_x, gravity_y, gravity_z \n`
+* CMDeviceMotion (linacce.txt): `timestamp, user_acceleration_x, user_acceleration_y, user_acceleration_z \n`
+* CMDeviceMotion (magnet.txt): `timestamp, magnetic_x, magnetic_y, magnetic_z \n`
+* CMAccelerometerData (acce.txt): `timestamp, acceleration_x, acceleration_y, acceleration_z \n`
+* CMGyroData (gyro_uncalib.txt): `timestamp, gyro_x, gyro_y, gyro_z \n`
+* CMPedometerData (step.txt): `timestamp, step count, distance \n`
 
 There are alternative representations of the attitude (roll/pitch/yaw, quaternions, rotation matrix).
 You will have to modify the source code if you prefer logging one of those instead of quaternion format.
