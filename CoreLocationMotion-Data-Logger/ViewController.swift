@@ -44,13 +44,16 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     
     
     // constants for collecting data
-    let numSensor = 6
-    let GPS_LOCATION = 0
-    let DEVICE_ORIENTATION = 1
-    let IMU_MAGNETOMETER = 2
-    let IMU_ACCELEROMETER = 3
-    let IMU_GYROSCOPE = 4
-    let PEDOMETER = 5
+    let numSensor = 9
+    let GYRO_TXT = 0
+    let GYRO_UNCALIB_TXT = 1
+    let ACCE_TXT = 2
+    let LINACCE_TXT = 3
+    let GRAVITY_TXT = 4
+    let MAGNET_TXT = 5
+    let GAME_RV_TXT = 6
+    let GPS_TXT = 7
+    let STEP_TXT = 8
     
     let sampleFrequency: TimeInterval = 200
     let gravity: Double = 9.81
@@ -77,7 +80,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     // text file input & output
     var fileHandlers = [FileHandle]()
     var fileURLs = [URL]()
-    var fileNames: [String] = ["GPS_location.txt", "device_orientation.txt", "calibrated_magnetic_field.txt", "raw_acceleration.txt", "raw_rotation_rate.txt", "pedometer.txt"]
+    var fileNames: [String] = ["gyro.txt", "gyro_uncalib.txt", "acce.txt", "linacce.txt", "gravity.txt", "magnet.txt", "game_rv.txt", "gps.txt", "step.txt"]
     
     
     override func viewDidLoad() {
@@ -220,7 +223,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
             
             // custom queue to save GPS location data
             self.customQueue.async {
-                if (self.fileHandlers.count == self.numSensor && self.isRecording) {
+                if ((self.fileHandlers.count == self.numSensor) && self.isRecording) {
                     let locationData = String(format: "%.0f %.6f %.6f %.6f %.6f %.6f %.6f \n",
                                               timestamp,
                                               latitude,
@@ -230,7 +233,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                                               buildingFloor,
                                               verticalAccuracy)
                     if let locationDataToWrite = locationData.data(using: .utf8) {
-                        self.fileHandlers[self.GPS_LOCATION].write(locationDataToWrite)
+                        self.fileHandlers[self.GPS_TXT].write(locationDataToWrite)
                     } else {
                         os_log("Failed to write data record", log: OSLog.default, type: .fault)
                     }
@@ -261,7 +264,8 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                 
                 // optional binding for safety
                 if let deviceMotion = motion {
-                    let timestamp = Date().timeIntervalSince1970 * self.mulSecondToNanoSecond
+                    //let timestamp = Date().timeIntervalSince1970 * self.mulSecondToNanoSecond
+                    let timestamp = deviceMotion.timestamp * self.mulSecondToNanoSecond
                     let deviceOrientationRx = deviceMotion.attitude.pitch
                     let deviceOrientationRy = deviceMotion.attitude.roll
                     let deviceOrientationRz = deviceMotion.attitude.yaw
@@ -270,6 +274,18 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                     let deviceOrientationQy = deviceMotion.attitude.quaternion.y
                     let deviceOrientationQz = deviceMotion.attitude.quaternion.z
                     let deviceOrientationQw = deviceMotion.attitude.quaternion.w
+                    
+                    let processedGyroDataX = deviceMotion.rotationRate.x
+                    let processedGyroDataY = deviceMotion.rotationRate.y
+                    let processedGyroDataZ = deviceMotion.rotationRate.z
+                    
+                    let gravityGx = deviceMotion.gravity.x * self.gravity
+                    let gravityGy = deviceMotion.gravity.y * self.gravity
+                    let gravityGz = deviceMotion.gravity.z * self.gravity
+                    
+                    let userAccelDataX = deviceMotion.userAcceleration.x * self.gravity
+                    let userAccelDataY = deviceMotion.userAcceleration.y * self.gravity
+                    let userAccelDataZ = deviceMotion.userAcceleration.z * self.gravity
                     
                     let magneticFieldX = deviceMotion.magneticField.field.x
                     let magneticFieldY = deviceMotion.magneticField.field.y
@@ -288,9 +304,9 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                     
                     // custom queue to save IMU text data
                     self.customQueue.async {
-                        if (self.fileHandlers.count == self.numSensor && self.isRecording) {
+                        if ((self.fileHandlers.count == self.numSensor) && self.isRecording) {
                             
-                            // Note that the device orientation is expressed in the quaternion form
+                            // the device orientation expressed in the quaternion format
                             let attitudeData = String(format: "%.0f %.6f %.6f %.6f %.6f \n",
                                                       timestamp,
                                                       deviceOrientationQx,
@@ -298,18 +314,55 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                                                       deviceOrientationQz,
                                                       deviceOrientationQw)
                             if let attitudeDataToWrite = attitudeData.data(using: .utf8) {
-                                self.fileHandlers[self.DEVICE_ORIENTATION].write(attitudeDataToWrite)
+                                self.fileHandlers[self.GAME_RV_TXT].write(attitudeDataToWrite)
                             } else {
                                 os_log("Failed to write data record", log: OSLog.default, type: .fault)
                             }
                             
+                            // the unbiased rotation rate
+                            let processedGyroData = String(format: "%.0f %.6f %.6f %.6f \n",
+                                                           timestamp,
+                                                           processedGyroDataX,
+                                                           processedGyroDataY,
+                                                           processedGyroDataZ)
+                            if let processedGyroDataToWrite = processedGyroData.data(using: .utf8) {
+                                self.fileHandlers[self.GYRO_TXT].write(processedGyroDataToWrite)
+                            } else {
+                                os_log("Failed to write data record", log: OSLog.default, type: .fault)
+                            }
+                            
+                            // the current gravity vector
+                            let gravityData = String(format: "%.0f %.6f %.6f %.6f \n",
+                                                     timestamp,
+                                                     gravityGx,
+                                                     gravityGy,
+                                                     gravityGz)
+                            if let gravityDataToWrite = gravityData.data(using: .utf8) {
+                                self.fileHandlers[self.GRAVITY_TXT].write(gravityDataToWrite)
+                            } else {
+                                os_log("Failed to write data record", log: OSLog.default, type: .fault)
+                            }
+                            
+                            // the user-generated acceleration vector (without gravity)
+                            let userAccelData = String(format: "%.0f %.6f %.6f %.6f \n",
+                                                       timestamp,
+                                                       userAccelDataX,
+                                                       userAccelDataY,
+                                                       userAccelDataZ)
+                            if let userAccelDataToWrite = userAccelData.data(using: .utf8) {
+                                self.fileHandlers[self.LINACCE_TXT].write(userAccelDataToWrite)
+                            } else {
+                                os_log("Failed to write data record", log: OSLog.default, type: .fault)
+                            }
+                            
+                            // the current magnetic field vector
                             let magneticData = String(format: "%.0f %.6f %.6f %.6f \n",
                                                       timestamp,
                                                       magneticFieldX,
                                                       magneticFieldY,
                                                       magneticFieldZ)
                             if let magneticDataToWrite = magneticData.data(using: .utf8) {
-                                self.fileHandlers[self.IMU_MAGNETOMETER].write(magneticDataToWrite)
+                                self.fileHandlers[self.MAGNET_TXT].write(magneticDataToWrite)
                             } else {
                                 os_log("Failed to write data record", log: OSLog.default, type: .fault)
                             }
@@ -326,7 +379,8 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                 
                 // optional binding for safety
                 if let accelerometerData = motion {
-                    let timestamp = Date().timeIntervalSince1970 * self.mulSecondToNanoSecond
+                    //let timestamp = Date().timeIntervalSince1970 * self.mulSecondToNanoSecond
+                    let timestamp = accelerometerData.timestamp * self.mulSecondToNanoSecond
                     let rawAccelDataX = accelerometerData.acceleration.x * self.gravity
                     let rawAccelDataY = accelerometerData.acceleration.y * self.gravity
                     let rawAccelDataZ = accelerometerData.acceleration.z * self.gravity
@@ -340,14 +394,14 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                     
                     // custom queue to save IMU text data
                     self.customQueue.async {
-                        if (self.fileHandlers.count == self.numSensor && self.isRecording) {
+                        if ((self.fileHandlers.count == self.numSensor) && self.isRecording) {
                             let rawAccelData = String(format: "%.0f %.6f %.6f %.6f \n",
                                                       timestamp,
                                                       rawAccelDataX,
                                                       rawAccelDataY,
                                                       rawAccelDataZ)
                             if let rawAccelDataToWrite = rawAccelData.data(using: .utf8) {
-                                self.fileHandlers[self.IMU_ACCELEROMETER].write(rawAccelDataToWrite)
+                                self.fileHandlers[self.ACCE_TXT].write(rawAccelDataToWrite)
                             } else {
                                 os_log("Failed to write data record", log: OSLog.default, type: .fault)
                             }
@@ -364,7 +418,8 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                 
                 // optional binding for safety
                 if let gyroData = motion {
-                    let timestamp = Date().timeIntervalSince1970 * self.mulSecondToNanoSecond
+                    //let timestamp = Date().timeIntervalSince1970 * self.mulSecondToNanoSecond
+                    let timestamp = gyroData.timestamp * self.mulSecondToNanoSecond
                     let rawGyroDataX = gyroData.rotationRate.x
                     let rawGyroDataY = gyroData.rotationRate.y
                     let rawGyroDataZ = gyroData.rotationRate.z
@@ -378,14 +433,14 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                     
                     // custom queue to save IMU text data
                     self.customQueue.async {
-                        if (self.fileHandlers.count == self.numSensor && self.isRecording) {
+                        if ((self.fileHandlers.count == self.numSensor) && self.isRecording) {
                             let rawGyroData = String(format: "%.0f %.6f %.6f %.6f \n",
                                                      timestamp,
                                                      rawGyroDataX,
                                                      rawGyroDataY,
                                                      rawGyroDataZ)
                             if let rawGyroDataToWrite = rawGyroData.data(using: .utf8) {
-                                self.fileHandlers[self.IMU_GYROSCOPE].write(rawGyroDataToWrite)
+                                self.fileHandlers[self.GYRO_UNCALIB_TXT].write(rawGyroDataToWrite)
                             } else {
                                 os_log("Failed to write data record", log: OSLog.default, type: .fault)
                             }
@@ -421,13 +476,13 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                     
                     // custom queue to save pedometer data
                     self.customQueue.async {
-                        if (self.fileHandlers.count == self.numSensor && self.isRecording) {
+                        if ((self.fileHandlers.count == self.numSensor) && self.isRecording) {
                             let pedoData = String(format: "%.0f %04d %.3f \n",
                                                      timestamp,
                                                      stepCounter,
                                                      distance)
                             if let pedoDataToWrite = pedoData.data(using: .utf8) {
-                                self.fileHandlers[self.PEDOMETER].write(pedoDataToWrite)
+                                self.fileHandlers[self.STEP_TXT].write(pedoDataToWrite)
                             } else {
                                 os_log("Failed to write data record", log: OSLog.default, type: .fault)
                             }
@@ -472,7 +527,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         self.fileURLs.removeAll()
         
         // create each GPS/IMU sensor text file
-        let header = "Created at \(timeToString())"
+        let header = "Created at \(timeToString()) \n"
         for i in 0...(self.numSensor - 1) {
             var url = URL(fileURLWithPath: NSTemporaryDirectory())
             url.appendPathComponent(fileNames[i])
