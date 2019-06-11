@@ -384,10 +384,6 @@
                                 <nil key="textColor"/>
                                 <nil key="highlightedColor"/>
                             </label>
-                            <arscnView clipsSubviews="YES" multipleTouchEnabled="YES" alpha="0.5" contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="YFi-aP-zEo">
-                                <rect key="frame" x="0.0" y="0.0" width="375" height="625"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                            </arscnView>
                         </subviews>
                         <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <viewLayoutGuide key="safeArea" id="6Tk-OE-BBY"/>
@@ -408,7 +404,6 @@
                         <outlet property="rxLabel" destination="moc-nk-w8i" id="oxD-j4-hKx"/>
                         <outlet property="ryLabel" destination="Ys9-yI-GnV" id="EVO-3h-Mkc"/>
                         <outlet property="rzLabel" destination="ucp-Tw-EAt" id="6ej-3u-RsA"/>
-                        <outlet property="sceneView" destination="YFi-aP-zEo" id="q0u-5O-SnO"/>
                         <outlet property="startStopButton" destination="b0f-iJ-R7j" id="XF0-Ex-4gy"/>
                         <outlet property="statusLabel" destination="J4B-ZL-TCz" id="vtm-t8-yQD"/>
                         <outlet property="stepCounterLabel" destination="b7r-jK-vR2" id="cYG-tT-zOd"/>
