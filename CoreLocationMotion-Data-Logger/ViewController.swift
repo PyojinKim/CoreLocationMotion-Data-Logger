@@ -44,16 +44,18 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     
     
     // constants for collecting data
-    let numSensor = 9
+    let numSensor = 11
     let GYRO_TXT = 0
     let GYRO_UNCALIB_TXT = 1
     let ACCE_TXT = 2
     let LINACCE_TXT = 3
     let GRAVITY_TXT = 4
     let MAGNET_TXT = 5
-    let GAME_RV_TXT = 6
-    let GPS_TXT = 7
-    let STEP_TXT = 8
+    let MAGNET_UNCALIB_TXT = 6
+    let GAME_RV_TXT = 7
+    let GPS_TXT = 8
+    let STEP_TXT = 9
+    let HEADING_TXT = 10
     
     let sampleFrequency: TimeInterval = 200
     let gravity: Double = 9.81
@@ -80,7 +82,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     // text file input & output
     var fileHandlers = [FileHandle]()
     var fileURLs = [URL]()
-    var fileNames: [String] = ["gyro.txt", "gyro_uncalib.txt", "acce.txt", "linacce.txt", "gravity.txt", "magnet.txt", "game_rv.txt", "gps.txt", "step.txt"]
+    var fileNames: [String] = ["gyro.txt", "gyro_uncalib.txt", "acce.txt", "linacce.txt", "gravity.txt", "magnet.txt", "magnet_uncalib.txt", "game_rv.txt", "gps.txt", "step.txt", "heading.txt"]
     
     
     override func viewDidLoad() {
@@ -252,10 +254,11 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     // define startIMUUpdate() function
     private func startIMUUpdate() {
         
-        // define IMU update interval up to 200 Hz
+        // define IMU update interval up to 200 Hz (in real, iOS supports 100 Hz)
         motionManager.deviceMotionUpdateInterval = 1.0 / sampleFrequency
         motionManager.accelerometerUpdateInterval = 1.0 / sampleFrequency
         motionManager.gyroUpdateInterval = 1.0 / sampleFrequency
+        motionManager.magnetometerUpdateInterval = 1.0 / sampleFrequency
         
         
         // 1) update device motion
@@ -290,6 +293,8 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                     let magneticFieldX = deviceMotion.magneticField.field.x
                     let magneticFieldY = deviceMotion.magneticField.field.y
                     let magneticFieldZ = deviceMotion.magneticField.field.z
+                    
+                    let deviceHeadingAngle = deviceMotion.heading
                     
                     // dispatch queue to display UI
                     DispatchQueue.main.async {
@@ -363,6 +368,16 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                                                       magneticFieldZ)
                             if let magneticDataToWrite = magneticData.data(using: .utf8) {
                                 self.fileHandlers[self.MAGNET_TXT].write(magneticDataToWrite)
+                            } else {
+                                os_log("Failed to write data record", log: OSLog.default, type: .fault)
+                            }
+                            
+                            // the heading angle (degrees) relative to the reference frame
+                            let headingAngleData = String(format: "%.0f %.6f \n",
+                                                          timestamp,
+                                                          deviceHeadingAngle)
+                            if let headingAngleDataToWrite = headingAngleData.data(using: .utf8) {
+                                self.fileHandlers[self.HEADING_TXT].write(headingAngleDataToWrite)
                             } else {
                                 os_log("Failed to write data record", log: OSLog.default, type: .fault)
                             }
@@ -449,6 +464,38 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                 }
             }
         }
+        
+        
+        // 4) update raw magnetometer data
+        if (!motionManager.isMagnetometerActive) {
+            motionManager.startMagnetometerUpdates(to: OperationQueue.main) { (motion: CMMagnetometerData?, error: Error?) in
+                
+                // optional binding for safety
+                if let magnetometerData = motion {
+                    //let timestamp = Date().timeIntervalSince1970 * self.mulSecondToNanoSecond
+                    let timestamp = magnetometerData.timestamp * self.mulSecondToNanoSecond
+                    let rawMagnetDataX = magnetometerData.magneticField.x
+                    let rawMagnetDataY = magnetometerData.magneticField.y
+                    let rawMagnetDataZ = magnetometerData.magneticField.z
+                    
+                    // custom queue to save IMU text data
+                    self.customQueue.async {
+                        if ((self.fileHandlers.count == self.numSensor) && self.isRecording) {
+                            let rawMagnetData = String(format: "%.0f %.6f %.6f %.6f \n",
+                                                       timestamp,
+                                                       rawMagnetDataX,
+                                                       rawMagnetDataY,
+                                                       rawMagnetDataZ)
+                            if let rawMagnetDataToWrite = rawMagnetData.data(using: .utf8) {
+                                self.fileHandlers[self.MAGNET_UNCALIB_TXT].write(rawMagnetDataToWrite)
+                            } else {
+                                os_log("Failed to write data record", log: OSLog.default, type: .fault)
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
     
     
@@ -526,14 +573,14 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         self.fileHandlers.removeAll()
         self.fileURLs.removeAll()
         
-        // create each GPS/IMU sensor text file
-        let header = ""
+        // create each GPS/IMU sensor text files
+        let startHeader = ""
         for i in 0...(self.numSensor - 1) {
             var url = URL(fileURLWithPath: NSTemporaryDirectory())
             url.appendPathComponent(fileNames[i])
             self.fileURLs.append(url)
             
-            // delete previous file
+            // delete previous text files
             if (FileManager.default.fileExists(atPath: url.path)) {
                 do {
                     try FileManager.default.removeItem(at: url)
@@ -543,11 +590,13 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                 }
             }
             
-            if (!FileManager.default.createFile(atPath: url.path, contents: header.data(using: String.Encoding.utf8), attributes: nil)) {
+            // create new text files
+            if (!FileManager.default.createFile(atPath: url.path, contents: startHeader.data(using: String.Encoding.utf8), attributes: nil)) {
                 self.errorMsg(msg: "cannot create file \(self.fileNames[i])")
                 return false
             }
             
+            // assign new file handlers
             let fileHandle: FileHandle? = FileHandle(forWritingAtPath: url.path)
             if let handle = fileHandle {
                 self.fileHandlers.append(handle)
@@ -556,8 +605,8 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
             }
         }
         
-        // write current recording time
-        let timeHeader = "# Created at \(timeToString()) in Seoul, South Korea \n"
+        // write current recording time information
+        let timeHeader = "# Created at \(timeToString()) in Seoul South Korea \n"
         for i in 0...(self.numSensor - 1) {
             if let timeHeaderToWrite = timeHeader.data(using: .utf8) {
                 self.fileHandlers[i].write(timeHeaderToWrite)
