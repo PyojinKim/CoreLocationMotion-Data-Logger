@@ -5,15 +5,20 @@ rand('state',0); % rand('state',sum(100*clock));
 dbstop if error;
 
 
+%% common setting to read text files
+
+delimiter = ' ';
+headerlinesIn = 1;
+nanoSecondToSecond = 1000000000;
+
+
 %% 1) GPS location
 
 % parsing GPS location text
 textFileDir = 'gps.txt';
-delimiter = ' ';
-headerlinesIn = 0;
 textGPSLocationData = importdata(textFileDir, delimiter, headerlinesIn);
-deviceLatitude = textGPSLocationData(:,2);
-deviceLongitude = textGPSLocationData(:,3);
+deviceLatitude = textGPSLocationData.data(:,2);
+deviceLongitude = textGPSLocationData.data(:,3);
 
 % plot trajectory on Google map
 figure;
@@ -27,12 +32,10 @@ xlabel('Longitude'); ylabel('Latitude'); hold off;
 
 % parsing device orientation text
 textFileDir = 'game_rv.txt';
-delimiter = ' ';
-headerlinesIn = 0;
 textOrientationData = importdata(textFileDir, delimiter, headerlinesIn);
-deviceOrientationTime = textOrientationData(:,1).';
-deviceOrientationTime = (deviceOrientationTime - deviceOrientationTime(1)) ./ 1000000000;
-deviceOrientationData = textOrientationData(:,[5 2 3 4]).';
+deviceOrientationTime = textOrientationData.data(:,1).';
+deviceOrientationTime = (deviceOrientationTime - deviceOrientationTime(1)) ./ nanoSecondToSecond;
+deviceOrientationData = textOrientationData.data(:,[5 2 3 4]).';
 numData = size(deviceOrientationData,2);
 
 % convert from unit quaternion to rotation matrix & roll/pitch/yaw
@@ -44,6 +47,7 @@ for k = 1:numData
 end
 
 % play 3-DoF device orientation
+figure(10);
 L = 1; % coordinate axis length
 A = [0 0 0 1; L 0 0 1; 0 0 0 1; 0 L 0 1; 0 0 0 1; 0 0 L 1].';
 for k = 1:1:numData
@@ -61,7 +65,7 @@ for k = 1:1:numData
 end
 
 % plot roll/pitch/yaw of device orientation
-figure(3);
+figure;
 subplot(3,1,1);
 plot(deviceOrientationTime, rpy_gb(1,:), 'm'); hold on; grid on; axis tight;
 set(gcf,'color','w'); hold off;
@@ -85,20 +89,175 @@ xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
 ylabel('Yaw [rad]','FontName','Times New Roman','FontSize',17);
 set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
 
+% plot update rate of device orientation
+timeDifference = diff(deviceOrientationTime);
+meanUpdateRate = (1/mean(timeDifference));
+figure;
+plot(deviceOrientationTime(2:end), timeDifference, 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(deviceOrientationTime) max(deviceOrientationTime) min(timeDifference) max(timeDifference)]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Time Difference [sec]','FontName','Times New Roman','FontSize',17);
+title(['Mean Update Rate: ', num2str(meanUpdateRate), ' Hz'],'FontName','Times New Roman','FontSize',17);
+set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
 
-%% 3) calibrated magnetic field
+
+%% 3) unbiased rotation rate
+
+% parsing unbiased rotation rate text
+textFileDir = 'gyro.txt';
+textUnbiasedGyroData = importdata(textFileDir, delimiter, headerlinesIn);
+unbiasedGyroTime = textUnbiasedGyroData.data(:,1).';
+unbiasedGyroTime = (unbiasedGyroTime - unbiasedGyroTime(1)) ./ nanoSecondToSecond;
+unbiasedGyroData = textUnbiasedGyroData.data(:,[2 3 4]).';
+
+% plot unbiased rotation rate X-Y-Z
+figure;
+subplot(3,1,1);
+plot(unbiasedGyroTime, unbiasedGyroData(1,:), 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(unbiasedGyroTime) max(unbiasedGyroTime) min(unbiasedGyroData(1,:)) max(unbiasedGyroData(1,:))]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('X [rad/s]','FontName','Times New Roman','FontSize',17);
+subplot(3,1,2);
+plot(unbiasedGyroTime, unbiasedGyroData(2,:), 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(unbiasedGyroTime) max(unbiasedGyroTime) min(unbiasedGyroData(2,:)) max(unbiasedGyroData(2,:))]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Y [rad/s]','FontName','Times New Roman','FontSize',17);
+subplot(3,1,3);
+plot(unbiasedGyroTime, unbiasedGyroData(3,:), 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(unbiasedGyroTime) max(unbiasedGyroTime) min(unbiasedGyroData(3,:)) max(unbiasedGyroData(3,:))]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Z [rad/s]','FontName','Times New Roman','FontSize',17);
+set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
+
+% plot unbiased rotation rate update rate
+timeDifference = diff(unbiasedGyroTime);
+meanUpdateRate = (1/mean(timeDifference));
+figure;
+plot(unbiasedGyroTime(2:end), timeDifference, 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(unbiasedGyroTime) max(unbiasedGyroTime) min(timeDifference) max(timeDifference)]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Time Difference [sec]','FontName','Times New Roman','FontSize',17);
+title(['Mean Update Rate: ', num2str(meanUpdateRate), ' Hz'],'FontName','Times New Roman','FontSize',17);
+set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
+
+
+%% 4) gravity vector
+
+% parsing gravity text
+textFileDir = 'gravity.txt';
+textGravityData = importdata(textFileDir, delimiter, headerlinesIn);
+gravityTime = textGravityData.data(:,1).';
+gravityTime = (gravityTime - gravityTime(1)) ./ nanoSecondToSecond;
+gravityData = textGravityData.data(:,[2 3 4]).';
+
+% plot gravity vector X-Y-Z
+figure;
+subplot(3,1,1);
+plot(gravityTime, gravityData(1,:), 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(gravityTime) max(gravityTime) min(gravityData(1,:)) max(gravityData(1,:))]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('X [m/s-2]','FontName','Times New Roman','FontSize',17);
+subplot(3,1,2);
+plot(gravityTime, gravityData(2,:), 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(gravityTime) max(gravityTime) min(gravityData(2,:)) max(gravityData(2,:))]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Y [m/s-2]','FontName','Times New Roman','FontSize',17);
+subplot(3,1,3);
+plot(gravityTime, gravityData(3,:), 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(gravityTime) max(gravityTime) min(gravityData(3,:)) max(gravityData(3,:))]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Z [m/s-2]','FontName','Times New Roman','FontSize',17);
+set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
+
+% plot gravity vector update rate
+timeDifference = diff(gravityTime);
+meanUpdateRate = (1/mean(timeDifference));
+figure;
+plot(gravityTime(2:end), timeDifference, 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(gravityTime) max(gravityTime) min(timeDifference) max(timeDifference)]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Time Difference [sec]','FontName','Times New Roman','FontSize',17);
+title(['Mean Update Rate: ', num2str(meanUpdateRate), ' Hz'],'FontName','Times New Roman','FontSize',17);
+set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
+
+
+%% 5) user-generated acceleration vector
+
+% parsing user-generated acceleration text
+textFileDir = 'linacce.txt';
+textUserAccelerationData = importdata(textFileDir, delimiter, headerlinesIn);
+userAccelTime = textUserAccelerationData.data(:,1).';
+userAccelTime = (userAccelTime - userAccelTime(1)) ./ nanoSecondToSecond;
+userAccelData = textUserAccelerationData.data(:,[2 3 4]).';
+
+% plot user-generated acceleration vector X-Y-Z
+figure;
+subplot(3,1,1);
+plot(userAccelTime, userAccelData(1,:), 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(userAccelTime) max(userAccelTime) min(userAccelData(1,:)) max(userAccelData(1,:))]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('X [m/s-2]','FontName','Times New Roman','FontSize',17);
+subplot(3,1,2);
+plot(userAccelTime, userAccelData(2,:), 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(userAccelTime) max(userAccelTime) min(userAccelData(2,:)) max(userAccelData(2,:))]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Y [m/s-2]','FontName','Times New Roman','FontSize',17);
+subplot(3,1,3);
+plot(userAccelTime, userAccelData(3,:), 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(userAccelTime) max(userAccelTime) min(userAccelData(3,:)) max(userAccelData(3,:))]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Z [m/s-2]','FontName','Times New Roman','FontSize',17);
+set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
+
+% plot user-generated acceleration vector update rate
+timeDifference = diff(userAccelTime);
+meanUpdateRate = (1/mean(timeDifference));
+figure;
+plot(userAccelTime(2:end), timeDifference, 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(userAccelTime) max(userAccelTime) min(timeDifference) max(timeDifference)]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Time Difference [sec]','FontName','Times New Roman','FontSize',17);
+title(['Mean Update Rate: ', num2str(meanUpdateRate), ' Hz'],'FontName','Times New Roman','FontSize',17);
+set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
+
+
+%% 6) calibrated magnetic field
 
 % parsing calibrated magnetic field text
 textFileDir = 'magnet.txt';
-delimiter = ' ';
-headerlinesIn = 0;
 textMagnetData = importdata(textFileDir, delimiter, headerlinesIn);
-magnetTime = textMagnetData(:,1).';
-magnetTime = (magnetTime - magnetTime(1)) ./ 1000000000;
-magnetData = textMagnetData(:,[2 3 4]).';
+magnetTime = textMagnetData.data(:,1).';
+magnetTime = (magnetTime - magnetTime(1)) ./ nanoSecondToSecond;
+magnetData = textMagnetData.data(:,[2 3 4]).';
 
 % plot calibrated magnetic field X-Y-Z
-figure(4);
+figure;
 subplot(3,1,1);
 plot(magnetTime, magnetData(1,:), 'm'); hold on; grid on; axis tight;
 set(gcf,'color','w'); hold off;
@@ -122,20 +281,64 @@ xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
 ylabel('Z [microT]','FontName','Times New Roman','FontSize',17);
 set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
 
+% plot calibrated magnetic field update rate
+timeDifference = diff(magnetTime);
+meanUpdateRate = (1/mean(timeDifference));
+figure;
+plot(magnetTime(2:end), timeDifference, 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(magnetTime) max(magnetTime) min(timeDifference) max(timeDifference)]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Time Difference [sec]','FontName','Times New Roman','FontSize',17);
+title(['Mean Update Rate: ', num2str(meanUpdateRate), ' Hz'],'FontName','Times New Roman','FontSize',17);
+set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
 
-%% 4) raw acceleration
+
+%% 7) heading angle (measured in degrees)
+
+% parsing heading angle text
+textFileDir = 'heading.txt';
+textHeadingData = importdata(textFileDir, delimiter, headerlinesIn);
+headingTime = textHeadingData.data(:,1).';
+headingTime = (headingTime - headingTime(1)) ./ nanoSecondToSecond;
+headingData = textHeadingData.data(:,2).';
+
+% plot heading angle relative to the current reference frame
+figure;
+plot(headingTime, headingData, 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(headingTime) max(headingTime) min(headingData) max(headingData)]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Heading [deg]','FontName','Times New Roman','FontSize',17);
+set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
+
+% plot heading angle update rate
+timeDifference = diff(headingTime);
+meanUpdateRate = (1/mean(timeDifference));
+figure;
+plot(headingTime(2:end), timeDifference, 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(headingTime) max(headingTime) min(timeDifference) max(timeDifference)]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Time Difference [sec]','FontName','Times New Roman','FontSize',17);
+title(['Mean Update Rate: ', num2str(meanUpdateRate), ' Hz'],'FontName','Times New Roman','FontSize',17);
+set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
+
+
+%% 8) raw acceleration
 
 % parsing raw acceleration text
 textFileDir = 'acce.txt';
-delimiter = ' ';
-headerlinesIn = 0;
 textRawAccelerationData = importdata(textFileDir, delimiter, headerlinesIn);
-rawAccelTime = textRawAccelerationData(:,1).';
-rawAccelTime = (rawAccelTime - rawAccelTime(1)) ./ 1000000000;
-rawAccelData = textRawAccelerationData(:,[2 3 4]).';
+rawAccelTime = textRawAccelerationData.data(:,1).';
+rawAccelTime = (rawAccelTime - rawAccelTime(1)) ./ nanoSecondToSecond;
+rawAccelData = textRawAccelerationData.data(:,[2 3 4]).';
 
 % plot raw acceleration X-Y-Z
-figure(5);
+figure;
 subplot(3,1,1);
 plot(rawAccelTime, rawAccelData(1,:), 'm'); hold on; grid on; axis tight;
 set(gcf,'color','w'); hold off;
@@ -159,20 +362,31 @@ xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
 ylabel('Z [m/s-2]','FontName','Times New Roman','FontSize',17);
 set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
 
+% plot raw acceleration update rate
+timeDifference = diff(rawAccelTime);
+meanUpdateRate = (1/mean(timeDifference));
+figure;
+plot(rawAccelTime(2:end), timeDifference, 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(rawAccelTime) max(rawAccelTime) min(timeDifference) max(timeDifference)]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Time Difference [sec]','FontName','Times New Roman','FontSize',17);
+title(['Mean Update Rate: ', num2str(meanUpdateRate), ' Hz'],'FontName','Times New Roman','FontSize',17);
+set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
 
-%% 5) raw rotation rate
+
+%% 9) raw rotation rate
 
 % parsing raw rotation rate text
 textFileDir = 'gyro_uncalib.txt';
-delimiter = ' ';
-headerlinesIn = 0;
 textRawGyroData = importdata(textFileDir, delimiter, headerlinesIn);
-rawGyroTime = textRawGyroData(:,1).';
-rawGyroTime = (rawGyroTime - rawGyroTime(1)) ./ 1000000000;
-rawGyroData = textRawGyroData(:,[2 3 4]).';
+rawGyroTime = textRawGyroData.data(:,1).';
+rawGyroTime = (rawGyroTime - rawGyroTime(1)) ./ nanoSecondToSecond;
+rawGyroData = textRawGyroData.data(:,[2 3 4]).';
 
 % plot raw rotation rate X-Y-Z
-figure(6);
+figure;
 subplot(3,1,1);
 plot(rawGyroTime, rawGyroData(1,:), 'm'); hold on; grid on; axis tight;
 set(gcf,'color','w'); hold off;
@@ -195,5 +409,68 @@ set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
 xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
 ylabel('Z [rad/s]','FontName','Times New Roman','FontSize',17);
 set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
+
+% plot raw rotation rate update rate
+timeDifference = diff(rawGyroTime);
+meanUpdateRate = (1/mean(timeDifference));
+figure;
+plot(rawGyroTime(2:end), timeDifference, 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(rawGyroTime) max(rawGyroTime) min(timeDifference) max(timeDifference)]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Time Difference [sec]','FontName','Times New Roman','FontSize',17);
+title(['Mean Update Rate: ', num2str(meanUpdateRate), ' Hz'],'FontName','Times New Roman','FontSize',17);
+set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
+
+
+%% 10) raw magnetic field
+
+% parsing raw magnetic field text
+textFileDir = 'magnet_uncalib.txt';
+textRawMagnetData = importdata(textFileDir, delimiter, headerlinesIn);
+rawMagnetTime = textRawMagnetData.data(:,1).';
+rawMagnetTime = (rawMagnetTime - rawMagnetTime(1)) ./ nanoSecondToSecond;
+rawMagnetData = textRawMagnetData.data(:,[2 3 4]).';
+
+% plot raw magnetic field X-Y-Z
+figure;
+subplot(3,1,1);
+plot(rawMagnetTime, rawMagnetData(1,:), 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(rawMagnetTime) max(rawMagnetTime) min(rawMagnetData(1,:)) max(rawMagnetData(1,:))]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('X [microT]','FontName','Times New Roman','FontSize',17);
+subplot(3,1,2);
+plot(rawMagnetTime, rawMagnetData(2,:), 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(rawMagnetTime) max(rawMagnetTime) min(rawMagnetData(2,:)) max(rawMagnetData(2,:))]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Y [microT]','FontName','Times New Roman','FontSize',17);
+subplot(3,1,3);
+plot(rawMagnetTime, rawMagnetData(3,:), 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(rawMagnetTime) max(rawMagnetTime) min(rawMagnetData(3,:)) max(rawMagnetData(3,:))]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Z [microT]','FontName','Times New Roman','FontSize',17);
+set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
+
+% plot raw magnetic field update rate
+timeDifference = diff(rawMagnetTime);
+meanUpdateRate = (1/mean(timeDifference));
+figure;
+plot(rawMagnetTime(2:end), timeDifference, 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(rawMagnetTime) max(rawMagnetTime) min(timeDifference) max(timeDifference)]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Time Difference [sec]','FontName','Times New Roman','FontSize',17);
+title(['Mean Update Rate: ', num2str(meanUpdateRate), ' Hz'],'FontName','Times New Roman','FontSize',17);
+set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
+
+
 
 
