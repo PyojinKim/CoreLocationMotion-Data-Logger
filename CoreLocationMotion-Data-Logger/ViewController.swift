@@ -7,11 +7,13 @@
 //
 
 import UIKit
+import SceneKit
+import ARKit
 import CoreLocation
 import CoreMotion
 import os.log
 
-class ViewController: UIViewController, CLLocationManagerDelegate {
+class ViewController: UIViewController, CLLocationManagerDelegate, ARSCNViewDelegate, ARSessionDelegate {
     
     // cellphone screen UI outlet objects
     @IBOutlet weak var startStopButton: UIButton!
@@ -42,9 +44,11 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     @IBOutlet weak var stepCounterLabel: UILabel!
     @IBOutlet weak var distanceLabel: UILabel!
     
+    @IBOutlet weak var sceneView: ARSCNView!
+    
     
     // constants for collecting data
-    let numSensor = 11
+    let numSensor = 12
     let GYRO_TXT = 0
     let GYRO_UNCALIB_TXT = 1
     let ACCE_TXT = 2
@@ -56,6 +60,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     let GPS_TXT = 8
     let STEP_TXT = 9
     let HEADING_TXT = 10
+    let ARKIT_CAMERA_POSE_TXT = 11
     
     let sampleFrequency: TimeInterval = 200
     let gravity: Double = 9.81
@@ -82,12 +87,14 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     // text file input & output
     var fileHandlers = [FileHandle]()
     var fileURLs = [URL]()
-    var fileNames: [String] = ["gyro.txt", "gyro_uncalib.txt", "acce.txt", "linacce.txt", "gravity.txt", "magnet.txt", "magnet_uncalib.txt", "game_rv.txt", "gps.txt", "step.txt", "heading.txt"]
+    var fileNames: [String] = ["gyro.txt", "gyro_uncalib.txt", "acce.txt", "linacce.txt", "gravity.txt", "magnet.txt", "magnet_uncalib.txt", "game_rv.txt", "gps.txt", "step.txt", "heading.txt", "ARKit_camera_pose.txt"]
     
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        // Do any additional setup after loading the view.
+        
+        // set debug option
+        self.sceneView.debugOptions = [ARSCNDebugOptions.showFeaturePoints, ARSCNDebugOptions.showWorldOrigin]
         
         // change status text to "Ready"
         statusLabel.text = "Ready"
@@ -98,6 +105,10 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         locationManager.requestAlwaysAuthorization()
         locationManager.startUpdatingLocation()
         
+        // set the view's delegate
+        sceneView.delegate = self
+        sceneView.showsStatistics = true
+        sceneView.session.delegate = self
         
         // define Core Motion manager setting
         customQueue.async {
@@ -107,7 +118,23 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     }
     
     
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        
+        // Create a session configuration
+        let configuration = ARWorldTrackingConfiguration()
+        
+        // Run the view's session
+        sceneView.session.run(configuration)
+    }
+    
+    
     override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        
+        // Pause the view's session
+        sceneView.session.pause()
+        
         locationManager.stopUpdatingLocation()
         customQueue.sync {
             stopIMUUpdate()
@@ -248,6 +275,49 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     // define didFailWithError function
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         print("GPS Error => \(error.localizedDescription)")
+    }
+    
+    
+    // define if ARSession is didUpdate (callback function)
+    func session(_ session: ARSession, didUpdate frame: ARFrame) {
+        
+        // obtain current transformation 4x4 matrix
+        let timestamp = frame.timestamp * self.mulSecondToNanoSecond
+        let T_gc = frame.camera.transform
+        
+        let r_11 = T_gc.columns.0.x
+        let r_12 = T_gc.columns.1.x
+        let r_13 = T_gc.columns.2.x
+        
+        let r_21 = T_gc.columns.0.y
+        let r_22 = T_gc.columns.1.y
+        let r_23 = T_gc.columns.2.y
+        
+        let r_31 = T_gc.columns.0.z
+        let r_32 = T_gc.columns.1.z
+        let r_33 = T_gc.columns.2.z
+        
+        let t_x = T_gc.columns.3.x
+        let t_y = T_gc.columns.3.y
+        let t_z = T_gc.columns.3.z
+        
+        // custom queue to save ARKit processing data
+        self.customQueue.async {
+            if ((self.fileHandlers.count == self.numSensor) && self.isRecording) {
+                
+                // the ARKit 6-DoF camera pose in KITTI format
+                let ARKitPoseData = String(format: "%.0f %.6f %.6f %.6f %.6f %.6f %.6f %.6f %.6f %.6f %.6f %.6f %.6f \n",
+                                           timestamp,
+                                           r_11, r_12, r_13, t_x,
+                                           r_21, r_22, r_23, t_y,
+                                           r_31, r_32, r_33, t_z)
+                if let ARKitPoseDataToWrite = ARKitPoseData.data(using: .utf8) {
+                    self.fileHandlers[self.ARKIT_CAMERA_POSE_TXT].write(ARKitPoseDataToWrite)
+                } else {
+                    os_log("Failed to write data record", log: OSLog.default, type: .fault)
+                }
+            }
+        }
     }
     
     
