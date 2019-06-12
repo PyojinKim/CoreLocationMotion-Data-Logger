@@ -26,9 +26,13 @@ I have chosen the following output formats, but they are easy to modify if you f
 * CMDeviceMotion (gravity.txt): `timestamp, gravity_x, gravity_y, gravity_z \n`
 * CMDeviceMotion (linacce.txt): `timestamp, user_acceleration_x, user_acceleration_y, user_acceleration_z \n`
 * CMDeviceMotion (magnet.txt): `timestamp, magnetic_x, magnetic_y, magnetic_z \n`
+* CMDeviceMotion (heading.txt): `timestamp, heading_angle \n`
 * CMAccelerometerData (acce.txt): `timestamp, acceleration_x, acceleration_y, acceleration_z \n`
 * CMGyroData (gyro_uncalib.txt): `timestamp, gyro_x, gyro_y, gyro_z \n`
+* CMMagnetometerData (magnet_uncalib.txt): `timestamp, magnetic_x, magnetic_y, magnetic_z \n`
 * CMPedometerData (step.txt): `timestamp, step count, distance \n`
+* CMAltitudeData (height.txt): `timestamp, relative_altitude \n`
+* CMAltitudeData (pressure.txt): `timestamp, pressure \n`
 
 There are alternative representations of the attitude (roll/pitch/yaw, quaternions, rotation matrix).
 You will have to modify the source code if you prefer logging one of those instead of quaternion format.

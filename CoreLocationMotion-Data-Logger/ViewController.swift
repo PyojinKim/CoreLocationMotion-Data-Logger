@@ -608,7 +608,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     // some useful functions
     private func errorMsg(msg: String) {
         DispatchQueue.main.async {
-            let fileAlert = UIAlertController(title: "IMURecorder", message: msg, preferredStyle: .alert)
+            let fileAlert = UIAlertController(title: "CoreLocationMotion-Data-Logger", message: msg, preferredStyle: .alert)
             fileAlert.addAction(UIAlertAction(title: "OK", style: .cancel, handler: nil))
             self.present(fileAlert, animated: true, completion: nil)
         }
