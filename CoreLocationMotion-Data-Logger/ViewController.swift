@@ -44,7 +44,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     
     
     // constants for collecting data
-    let numSensor = 11
+    let numSensor = 13
     let GYRO_TXT = 0
     let GYRO_UNCALIB_TXT = 1
     let ACCE_TXT = 2
@@ -56,6 +56,8 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     let GPS_TXT = 8
     let STEP_TXT = 9
     let HEADING_TXT = 10
+    let HEIGHT_TXT = 11
+    let PRESSURE_TXT = 12
     
     let sampleFrequency: TimeInterval = 200
     let gravity: Double = 9.81
@@ -67,6 +69,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     let locationManager = CLLocationManager()
     let motionManager = CMMotionManager()
     let pedoMeter = CMPedometer()
+    let altimeter = CMAltimeter()
     let customQueue: DispatchQueue = DispatchQueue(label: "pyojinkim.me")
     
     // variables for measuring time in iOS clock
@@ -82,7 +85,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     // text file input & output
     var fileHandlers = [FileHandle]()
     var fileURLs = [URL]()
-    var fileNames: [String] = ["gyro.txt", "gyro_uncalib.txt", "acce.txt", "linacce.txt", "gravity.txt", "magnet.txt", "magnet_uncalib.txt", "game_rv.txt", "gps.txt", "step.txt", "heading.txt"]
+    var fileNames: [String] = ["gyro.txt", "gyro_uncalib.txt", "acce.txt", "linacce.txt", "gravity.txt", "magnet.txt", "magnet_uncalib.txt", "game_rv.txt", "gps.txt", "step.txt", "heading.txt", "height.txt", "pressure.txt"]
     
     
     override func viewDidLoad() {
@@ -101,6 +104,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         customQueue.async {
             self.startIMUUpdate()
             self.startPedometerUpdate()
+            self.startAltimeterUpdate()
         }
     }
     
@@ -111,6 +115,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
             stopIMUUpdate()
         }
         pedoMeter.stopUpdates()
+        altimeter.stopRelativeAltitudeUpdates()
     }
     
     
@@ -252,7 +257,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     // define startIMUUpdate() function
     private func startIMUUpdate() {
         
-        // define IMU update interval up to 200 Hz (in real, iOS supports 100 Hz)
+        // define IMU update interval up to 200 Hz (in real, iOS can only support up to 100 Hz)
         motionManager.deviceMotionUpdateInterval = 1.0 / sampleFrequency
         motionManager.accelerometerUpdateInterval = 1.0 / sampleFrequency
         motionManager.gyroUpdateInterval = 1.0 / sampleFrequency
@@ -528,6 +533,51 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                                                      distance)
                             if let pedoDataToWrite = pedoData.data(using: .utf8) {
                                 self.fileHandlers[self.STEP_TXT].write(pedoDataToWrite)
+                            } else {
+                                os_log("Failed to write data record", log: OSLog.default, type: .fault)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    
+    
+    // define startAltimeterUpdate() function
+    private func startAltimeterUpdate() {
+        
+        // check barometric sensor information are available
+        if (CMAltimeter.isRelativeAltitudeAvailable()) {
+            altimeter.startRelativeAltitudeUpdates(to: OperationQueue.main) { (motion: CMAltitudeData?, error: Error?) in
+                
+                // optional binding for safety
+                if let barometerData = motion {
+                    //let timestamp = Date().timeIntervalSince1970 * self.mulSecondToNanoSecond
+                    let timestamp = barometerData.timestamp * self.mulSecondToNanoSecond
+                    let relativeAltitude = barometerData.relativeAltitude.doubleValue
+                    let pressure = barometerData.pressure.doubleValue
+                    
+                    // custom queue to save barometric text data
+                    self.customQueue.async {
+                        if ((self.fileHandlers.count == self.numSensor) && self.isRecording) {
+                            
+                            // the change in altitude (in meters) since the first reported event
+                            let relativeAltitudeData = String(format: "%.0f %.6f \n",
+                                                              timestamp,
+                                                              relativeAltitude)
+                            if let relativeAltitudeDataToWrite = relativeAltitudeData.data(using: .utf8) {
+                                self.fileHandlers[self.HEIGHT_TXT].write(relativeAltitudeDataToWrite)
+                            } else {
+                                os_log("Failed to write data record", log: OSLog.default, type: .fault)
+                            }
+                            
+                            // the recorded pressure (in kilopascals)
+                            let pressureData = String(format: "%.0f %.6f \n",
+                                                      timestamp,
+                                                      pressure)
+                            if let pressureDataToWrite = pressureData.data(using: .utf8) {
+                                self.fileHandlers[self.PRESSURE_TXT].write(pressureDataToWrite)
                             } else {
                                 os_log("Failed to write data record", log: OSLog.default, type: .fault)
                             }
