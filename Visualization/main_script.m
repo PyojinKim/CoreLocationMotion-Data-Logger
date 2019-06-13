@@ -50,7 +50,7 @@ end
 figure(10);
 L = 1; % coordinate axis length
 A = [0 0 0 1; L 0 0 1; 0 0 0 1; 0 L 0 1; 0 0 0 1; 0 0 L 1].';
-for k = 1:1:numData
+for k = 1:5:numData
     cla;
     figure(10);
     plot_inertial_frame(0.5); hold on; grid on; axis equal;
@@ -470,6 +470,114 @@ xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
 ylabel('Time Difference [sec]','FontName','Times New Roman','FontSize',17);
 title(['Mean Update Rate: ', num2str(meanUpdateRate), ' Hz'],'FontName','Times New Roman','FontSize',17);
 set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
+
+
+%% 11) step count / distance
+
+% parsing step text
+textFileDir = 'step.txt';
+textSteptData = importdata(textFileDir, delimiter, headerlinesIn);
+stepTime = textSteptData.data(:,1).';
+stepTime = (stepTime - stepTime(1)) ./ nanoSecondToSecond;
+stepData = textSteptData.data(:,[2 3]).';
+
+% plot step count
+figure;
+subplot(2,1,1);
+plot(stepTime, stepData(1,:), 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(stepTime) max(stepTime) min(stepData(1,:)) max(stepData(1,:))]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Step Counting','FontName','Times New Roman','FontSize',17);
+subplot(2,1,2);
+plot(stepTime, stepData(2,:), 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(stepTime) max(stepTime) min(stepData(2,:)) max(stepData(2,:))]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Traveled Distance [m]','FontName','Times New Roman','FontSize',17);
+set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
+
+% plot step count update rate
+timeDifference = diff(stepTime);
+meanUpdateRate = (1/mean(timeDifference));
+figure;
+plot(stepTime(2:end), timeDifference, 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(stepTime) max(stepTime) min(timeDifference) max(timeDifference)]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Time Difference [sec]','FontName','Times New Roman','FontSize',17);
+title(['Mean Update Rate: ', num2str(meanUpdateRate), ' Hz'],'FontName','Times New Roman','FontSize',17);
+set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
+
+
+%% 12) height
+
+% parsing height text
+textFileDir = 'height.txt';
+textHeightData = importdata(textFileDir, delimiter, headerlinesIn);
+heightTime = textHeightData.data(:,1).';
+heightTime = (heightTime - heightTime(1)) ./ nanoSecondToSecond;
+heightData = textHeightData.data(:,2).';
+
+% plot relative height
+figure;
+plot(heightTime, heightData, 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(heightTime) max(heightTime) min(heightData) max(heightData)]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Relative Height [m]','FontName','Times New Roman','FontSize',17);
+set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
+
+% plot height update rate
+timeDifference = diff(heightTime);
+meanUpdateRate = (1/mean(timeDifference));
+figure;
+plot(heightTime(2:end), timeDifference, 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(heightTime) max(heightTime) min(timeDifference) max(timeDifference)]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Time Difference [sec]','FontName','Times New Roman','FontSize',17);
+title(['Mean Update Rate: ', num2str(meanUpdateRate), ' Hz'],'FontName','Times New Roman','FontSize',17);
+set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
+
+
+%% 13) pressure
+
+% parsing pressure text
+textFileDir = 'pressure.txt';
+textPressureData = importdata(textFileDir, delimiter, headerlinesIn);
+pressureTime = textPressureData.data(:,1).';
+pressureTime = (pressureTime - pressureTime(1)) ./ nanoSecondToSecond;
+pressureData = textPressureData.data(:,2).';
+
+% plot pressure
+figure;
+plot(pressureTime, pressureData, 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(pressureTime) max(pressureTime) min(pressureData) max(pressureData)]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Pressure [kPa]','FontName','Times New Roman','FontSize',17);
+set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
+
+% plot pressure update rate
+timeDifference = diff(pressureTime);
+meanUpdateRate = (1/mean(timeDifference));
+figure;
+plot(pressureTime(2:end), timeDifference, 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(pressureTime) max(pressureTime) min(timeDifference) max(timeDifference)]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Time Difference [sec]','FontName','Times New Roman','FontSize',17);
+title(['Mean Update Rate: ', num2str(meanUpdateRate), ' Hz'],'FontName','Times New Roman','FontSize',17);
+set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
+
 
 
 
