@@ -33,6 +33,7 @@ I have chosen the following output formats, but they are easy to modify if you f
 * CMPedometerData (step.txt): `timestamp, step count, distance \n`
 * CMAltitudeData (height.txt): `timestamp, relative_altitude \n`
 * CMAltitudeData (pressure.txt): `timestamp, pressure \n`
+* UIDevice (battery.txt): `timestamp, battery_level \n`
 
 There are alternative representations of the attitude (roll/pitch/yaw, quaternions, rotation matrix).
 You will have to modify the source code if you prefer logging one of those instead of quaternion format.

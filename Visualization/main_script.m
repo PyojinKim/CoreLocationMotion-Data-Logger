@@ -579,6 +579,38 @@ title(['Mean Update Rate: ', num2str(meanUpdateRate), ' Hz'],'FontName','Times N
 set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
 
 
+%% 14) battery
+
+% parsing battery text
+textFileDir = 'battery.txt';
+textBatteryData = importdata(textFileDir, delimiter, headerlinesIn);
+batteryTime = textBatteryData.data(:,1).';
+batteryTime = (batteryTime - batteryTime(1)) ./ nanoSecondToSecond;
+batteryData = textBatteryData.data(:,2).';
+
+% plot battery
+figure;
+plot(batteryTime, batteryData, 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(batteryTime) max(batteryTime) min(batteryData) max(batteryData)]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Battery [%]','FontName','Times New Roman','FontSize',17);
+set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
+
+% plot battery update rate
+timeDifference = diff(batteryTime);
+meanUpdateRate = (1/mean(timeDifference));
+figure;
+plot(batteryTime(2:end), timeDifference, 'm'); hold on; grid on; axis tight;
+set(gcf,'color','w'); hold off;
+axis([min(batteryTime) max(batteryTime) min(timeDifference) max(timeDifference)]);
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Time Difference [sec]','FontName','Times New Roman','FontSize',17);
+title(['Mean Update Rate: ', num2str(meanUpdateRate), ' Hz'],'FontName','Times New Roman','FontSize',17);
+set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
+
 
 
 
