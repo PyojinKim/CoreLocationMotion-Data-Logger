@@ -44,7 +44,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     
     
     // constants for collecting data
-    let numSensor = 13
+    let numSensor = 14
     let GYRO_TXT = 0
     let GYRO_UNCALIB_TXT = 1
     let ACCE_TXT = 2
@@ -58,6 +58,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     let HEADING_TXT = 10
     let HEIGHT_TXT = 11
     let PRESSURE_TXT = 12
+    let BATTERY_TXT = 13
     
     let sampleFrequency: TimeInterval = 200
     let gravity: Double = 9.81
@@ -74,6 +75,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     
     // variables for measuring time in iOS clock
     var recordingTimer: Timer = Timer()
+    var batteryLevelTimer: Timer = Timer()
     var secondCounter: Int64 = 0 {
         didSet {
             statusLabel.text = interfaceIntTime(second: secondCounter)
@@ -85,14 +87,15 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
     // text file input & output
     var fileHandlers = [FileHandle]()
     var fileURLs = [URL]()
-    var fileNames: [String] = ["gyro.txt", "gyro_uncalib.txt", "acce.txt", "linacce.txt", "gravity.txt", "magnet.txt", "magnet_uncalib.txt", "game_rv.txt", "gps.txt", "step.txt", "heading.txt", "height.txt", "pressure.txt"]
+    var fileNames: [String] = ["gyro.txt", "gyro_uncalib.txt", "acce.txt", "linacce.txt", "gravity.txt", "magnet.txt", "magnet_uncalib.txt", "game_rv.txt", "gps.txt", "step.txt", "heading.txt", "height.txt", "pressure.txt", "battery.txt"]
     
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // change status text to "Ready"
+        // default device setting
         statusLabel.text = "Ready"
+        UIDevice.current.isBatteryMonitoringEnabled = true
         
         // define Core Location manager setting
         locationManager.delegate = self
@@ -105,6 +108,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
             self.startIMUUpdate()
             self.startPedometerUpdate()
             self.startAltimeterUpdate()
+            self.startBatteryLevelUpdate()
         }
     }
     
@@ -150,6 +154,9 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
             // stop recording and share the recorded text file
             if (recordingTimer.isValid) {
                 recordingTimer.invalidate()
+            }
+            if (batteryLevelTimer.isValid) {
+                batteryLevelTimer.invalidate()
             }
             
             customQueue.async {
@@ -585,6 +592,34 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                     }
                 }
             }
+        }
+    }
+    
+    
+    // define startBatteryLevelUpdate() function
+    private func startBatteryLevelUpdate() {
+        DispatchQueue.main.async {
+            self.batteryLevelTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true, block: { (Timer) -> Void in
+                
+                let timestamp = Date().timeIntervalSince1970 * self.mulSecondToNanoSecond
+                let batteryLevel = UIDevice.current.batteryLevel
+                
+                // custom queue to save battery level text data
+                self.customQueue.async {
+                    if ((self.fileHandlers.count == self.numSensor) && self.isRecording) {
+                        
+                        // the battery charge level for the device
+                        let batteryLevelData = String(format: "%.0f %.6f \n",
+                                                      timestamp,
+                                                      batteryLevel)
+                        if let batteryLevelDataToWrite = batteryLevelData.data(using: .utf8) {
+                            self.fileHandlers[self.BATTERY_TXT].write(batteryLevelDataToWrite)
+                        } else {
+                            os_log("Failed to write data record", log: OSLog.default, type: .fault)
+                        }
+                    }
+                }
+            })
         }
     }
     
