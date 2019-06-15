@@ -266,6 +266,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
         
         // define IMU update interval up to 200 Hz (in real, iOS can only support up to 100 Hz)
         motionManager.deviceMotionUpdateInterval = 1.0 / sampleFrequency
+        motionManager.showsDeviceMovementDisplay = true
         motionManager.accelerometerUpdateInterval = 1.0 / sampleFrequency
         motionManager.gyroUpdateInterval = 1.0 / sampleFrequency
         motionManager.magnetometerUpdateInterval = 1.0 / sampleFrequency
