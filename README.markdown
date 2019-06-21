@@ -20,7 +20,15 @@ It doesn't currently check for sensor availability before logging.
 
 In the global (inertial or reference) frame in Core Motion, +Z axis is vertical (up) and the X axis points toward magnetic north: [here](https://developer.apple.com/documentation/coremotion/getting_processed_device-motion_data/understanding_reference_frames_and_device_attitude).
 Y axis is determined based on the Z- and X-axes using the right hand rule.
-The device frame is attached as shown in the above figure: [here](https://developer.apple.com/documentation/coremotion/getting_raw_gyroscope_events).
+The IMU body frame is attached as shown in the above figure: [here](https://developer.apple.com/documentation/coremotion/getting_raw_gyroscope_events).
+
+
+In the global (inertial or reference) frame in ARKit, the Y-axis (up) matches the direction of gravity as detected by the device's motion sensing hardware; that is, the vector (0,-1,0) points downward.
+For the Z-axis, ARKit chooses a basis vector (0,0,-1) pointing in the direction the device camera faces and perpendicular to the gravity axis.
+ARKit chooses a X-axis based on the Z- and Y-axes using the right hand rule.
+The ARKit (camera) body frame's X-axis always points along the long axis of the device (down).
+Y-axis points right, and the Z-axis points out the front of the device (toward the user).
+For more details, see the ARConfiguration WorldAlignment documentation [here](https://developer.apple.com/documentation/arkit/arconfiguration/worldalignment/gravity) and [here](https://developer.apple.com/documentation/arkit/arconfiguration/worldalignment/camera).
 
 
 ## Output Format ##
