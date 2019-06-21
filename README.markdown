@@ -16,6 +16,13 @@ This Xcode project is written under Xcode Version 10.2.1 (10E1001) for iOS 12.2.
 It doesn't currently check for sensor availability before logging.
 
 
+## Reference Frames and Device Attitude ##
+
+In the global (inertial or reference) frame in Core Motion, +Z axis is vertical (up) and the X axis points toward magnetic north: [here](https://developer.apple.com/documentation/coremotion/getting_processed_device-motion_data/understanding_reference_frames_and_device_attitude).
+Y axis is determined based on the Z- and X-axes using the right hand rule.
+The device frame is attached as shown in the above figure: [here](https://developer.apple.com/documentation/coremotion/getting_raw_gyroscope_events).
+
+
 ## Output Format ##
 
 I have chosen the following output formats, but they are easy to modify if you find something else more convenient.
