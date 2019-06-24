@@ -173,14 +173,72 @@ ylabel('Yaw [rad]','FontName','Times New Roman','FontSize',17);
 set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
 
 
-%
+% transform from ARKit global frame {gc} to IMU global frame {gi}
+R_gi_gc_const = R_gi_gc(:,:,round(numSyncData/2));
+R_gi_i_sync_fromARKit = zeros(3,3,numSyncData);
 for k = 1:numSyncData
-    
-    
-    R_gi_gc(:,:,k) * R_gc_i_sync(:,:,k)
-    
+    R_gi_i_sync_fromARKit(:,:,k) = R_gi_gc_const * R_gc_i_sync(:,:,k);
 end
 
+
+%% 4) compare device orientation accuracy (IMU vs ARKit)
+
+% convert to roll, pitch, yaw representations
+rpy_gi_i_sync = zeros(3,numSyncData);
+rpy_gi_i_sync_fromARKit = zeros(3,numSyncData);
+for k = 1:numSyncData
+    rpy_gi_i_sync(:,k) = rotmtx2angle(inv(R_gi_i_sync(:,:,k)));
+    rpy_gi_i_sync_fromARKit(:,k) = rotmtx2angle(inv(R_gi_i_sync_fromARKit(:,:,k)));
+end
+
+% plot roll/pitch/yaw of device orientation
+figure;
+subplot(3,1,1);
+plot(deviceOrientationTime_sync, rpy_gi_i_sync(1,:), 'm'); hold on; grid on;
+plot(deviceOrientationTime_sync, rpy_gi_i_sync_fromARKit(1,:), 'k'); axis tight;
+set(gcf,'color','w'); hold off; legend('IMU','ARKit');
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Roll [rad]','FontName','Times New Roman','FontSize',17);
+subplot(3,1,2);
+plot(deviceOrientationTime_sync, rpy_gi_i_sync(2,:), 'm'); hold on; grid on;
+plot(deviceOrientationTime_sync, rpy_gi_i_sync_fromARKit(2,:), 'k'); axis tight;
+set(gcf,'color','w'); hold off;
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Pitch [rad]','FontName','Times New Roman','FontSize',17);
+subplot(3,1,3);
+plot(deviceOrientationTime_sync, rpy_gi_i_sync(3,:), 'm'); hold on; grid on;
+plot(deviceOrientationTime_sync, rpy_gi_i_sync_fromARKit(3,:), 'k'); axis tight;
+set(gcf,'color','w'); hold off;
+set(get(gcf,'CurrentAxes'),'FontName','Times New Roman','FontSize',17);
+xlabel('Time [sec]','FontName','Times New Roman','FontSize',17);
+ylabel('Yaw [rad]','FontName','Times New Roman','FontSize',17);
+set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
+
+% play 3-DoF device orientation
+figure(10);
+L = 1; % coordinate axis length
+A = [0 0 0 1; L 0 0 1; 0 0 0 1; 0 L 0 1; 0 0 0 1; 0 0 L 1].';
+for k = 1:2:numSyncData
+    cla;
+    figure(10);
+    plot_inertial_frame(0.5); hold on; grid on; axis equal;
+    T_gi = [R_gi_i_sync(:,:,k), 1.1*ones(3,1);
+        zeros(1,3), 1];
+    B = T_gi * A;
+    plot3(B(1,1:2),B(2,1:2),B(3,1:2),'-r','LineWidth',1);   % x: red
+    plot3(B(1,3:4),B(2,3:4),B(3,3:4),'-g','LineWidth',1);  % y: green
+    plot3(B(1,5:6),B(2,5:6),B(3,5:6),'-b','LineWidth',1);  % z: blue
+    
+    T_gi = [R_gi_i_sync_fromARKit(:,:,k), ones(3,1);
+        zeros(1,3), 1];
+    B = T_gi * A;
+    plot3(B(1,1:2),B(2,1:2),B(3,1:2),'-r','LineWidth',3);   % x: red
+    plot3(B(1,3:4),B(2,3:4),B(3,3:4),'-g','LineWidth',3);  % y: green
+    plot3(B(1,5:6),B(2,5:6),B(3,5:6),'-b','LineWidth',3);  % z: blue
+    refresh; pause(0.01); k
+end
 
 
 
