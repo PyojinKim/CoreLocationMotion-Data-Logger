@@ -174,7 +174,7 @@ set(gcf,'Units','pixels','Position',[100 200 1800 900]);  % modify figure
 
 
 % transform from ARKit global frame {gc} to IMU global frame {gi}
-R_gi_gc_const = R_gi_gc(:,:,round(numSyncData/2));
+R_gi_gc_const = R_gi_gc(:,:,600);
 R_gi_i_sync_fromARKit = zeros(3,3,numSyncData);
 for k = 1:numSyncData
     R_gi_i_sync_fromARKit(:,:,k) = R_gi_gc_const * R_gc_i_sync(:,:,k);
