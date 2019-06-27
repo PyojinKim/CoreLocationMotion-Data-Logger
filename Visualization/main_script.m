@@ -657,6 +657,7 @@ for k = 1:numPose
 end
 
 % plot 3D trajectory of ARKit camera pose
+figure;
 h_ARKit = plot3(stateEsti_ARKit(1,:),stateEsti_ARKit(2,:),stateEsti_ARKit(3,:),'m','LineWidth',2); hold on; grid on;
 plot_inertial_frame(20); legend(h_ARKit,{'ARKit'}); axis equal; view(26, 73);
 xlabel('x [m]','fontsize',15); ylabel('y [m]','fontsize',15); zlabel('z [m]','fontsize',15); hold off;
