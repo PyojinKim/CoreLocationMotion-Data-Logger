@@ -764,7 +764,7 @@ class ViewController: UIViewController, CLLocationManagerDelegate, ARSCNViewDele
         }
         
         // write current recording time information
-        let timeHeader = "# Created at \(timeToString()) in Seoul South Korea \n"
+        let timeHeader = "# Created at \(timeToString()) in Burnaby Canada \n"
         for i in 0...(self.numSensor - 1) {
             if let timeHeaderToWrite = timeHeader.data(using: .utf8) {
                 self.fileHandlers[i].write(timeHeaderToWrite)
