@@ -242,8 +242,8 @@ class ViewController: UIViewController, CLLocationManagerDelegate {
                                               longitude,
                                               horizontalAccuracy,
                                               altitude,
-                                              buildingFloor,
-                                              verticalAccuracy)
+                                              verticalAccuracy,
+                                              buildingFloor)
                     if let locationDataToWrite = locationData.data(using: .utf8) {
                         self.fileHandlers[self.GPS_TXT].write(locationDataToWrite)
                     } else {
